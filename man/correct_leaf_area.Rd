@@ -4,7 +4,7 @@
 \alias{correct_leaf_area}
 \title{calculate leaf area sandwitched by the chamber}
 \usage{
-correct_leaf_area(data, width_mm = 15, model = "6400-40")
+correct_leaf_area(data, width_mm, model = "6400-40")
 }
 \arguments{
 \item{data}{gas-exchange data}

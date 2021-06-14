@@ -19,10 +19,6 @@ read_licor <- function(file){
   info <-
     raw_data[info_rows,]
 
-  remark <-
-    raw_data[change_rows[1], "X1", drop = TRUE] %>%
-    stringr::str_sub(start = 10, end = -1)
-
   date <-
     info[2 , 1, drop = TRUE] %>%
     stringr::str_sub(start = 5, end = 15) %>%
@@ -43,12 +39,51 @@ read_licor <- function(file){
                   .before = 1,
                   HHMMSS = NULL)
 
-  controls <-
+  attributes(tidy_data)$remark <-
+    raw_data[change_rows[1], "X1", drop = TRUE] %>%
+    stringr::str_sub(start = 10, end = -1)
+
+  attributes(tidy_data)$controls <-
     raw_data[change_rows[-1], ] %>%
     tidyr::extract(X1, into = c("time", "log"), regex = "(.+:[0-9]+) (.+)") %>%
     dplyr::mutate(time = lubridate::ymd_hms(paste0(date, " ", time)),
                   file = paste0(basename(file)))
 
-  return(tibble::lst(data = tidy_data, remark, controls))
+
+  return(tidy_data)
 }
 
+#' extract control procedure from change logs
+#'
+#'@param data output of `read_licor`
+#'@param track_variable variable tracked
+#'@param name_variable name of variable in the output tibble
+#'
+#'@importFrom magrittr %>%
+#'@importFrom magrittr %$%
+#'@importFrom rlang !!
+#'@importFrom rlang :=
+#'@export
+track_changes <-
+  function(data, track_variable = "ParIn", name_variable = "PPFD"){
+
+    changes <-
+      attributes(data)$controls %>%
+      dplyr::filter(stringr::str_detect(log, track_variable)) %>%
+      dplyr::mutate(log = stringr::str_extract(log, ":.*-> [0-9.]*")) %>%
+      tidyr::separate(log, into = c("variable", "value"), sep = "->") %>%
+      dplyr::mutate(variable = NULL, value = as.numeric(value))
+
+    output <-
+      data %>%
+      dplyr::mutate(value = NA_real_)
+    for(i in 1:(NROW(changes)-1)){
+      output <-
+        output %>%
+        dplyr::mutate(value = dplyr::if_else(time > changes$time[i], changes$value[i], value))
+    }
+
+    output %>%
+      dplyr::rename(!!(name_variable) := value) %>%
+      return()
+  }
