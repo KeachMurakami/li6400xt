@@ -8,20 +8,20 @@
 correct_leaf_area <-
   function(data, width_mm, model = "6400-40"){
 
-    default_area <- unique(data$area)
+    default_area <- unique(data$Area)
 
     # 6400-07 Needle Chamber 2 x 6 cm
-    if(model == "6400-07|Needle"){
+    if(model == "6400-07"){
       area <- pmin(width_mm/10 * 6, default_area)
     }
 
     # 6400-02B LED Light Source 2 x 3 cm
-    if(model == "6400-02B|LED"){
+    if(model == "6400-02B"){
       area <- pmin(width_mm/10 * 3, default_area)
     }
 
     # 6400-40 Leaf Chamber Fluorometer 2 cm2 circle
-    if(model == "6400-40|PAM"){
+    if(model == "6400-40"){
       r <- sqrt(default_area/pi)
       l <- width_mm / 10
       if(l > 2 * r){
