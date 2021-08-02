@@ -4,14 +4,14 @@
 \alias{track_changes}
 \title{extract control procedure from change logs}
 \usage{
-track_changes(data, track_variable = "ParIn", name_variable = "PPFD")
+track_changes(data, track = "LCF", variable = "PPFD")
 }
 \arguments{
 \item{data}{output of \code{read_licor}}
 
-\item{track_variable}{variable tracked}
+\item{track}{tracked operation}
 
-\item{name_variable}{name of variable in the output tibble}
+\item{variable}{name of new variable}
 }
 \description{
 extract control procedure from change logs

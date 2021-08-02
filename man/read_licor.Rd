@@ -4,10 +4,12 @@
 \alias{read_licor}
 \title{read gas-exchange data from LI6400XT}
 \usage{
-read_licor(file)
+read_licor(file, inherit_pam = FALSE)
 }
 \arguments{
 \item{file}{path}
+
+\item{inherit_pam}{logical; if \code{TRUE} xxx}
 }
 \description{
 read gas-exchange data from LI6400XT

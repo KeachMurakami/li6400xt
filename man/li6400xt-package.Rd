@@ -4,7 +4,7 @@
 \name{li6400xt-package}
 \alias{li6400xt}
 \alias{li6400xt-package}
-\title{li6400xt: Prepare Gas Exchange Data for R workflow}
+\title{li6400xt: Preprocess Gas Exchange Data for R workflow}
 \description{
 Read gas exchange data obtained by LI-6400XT.
 }

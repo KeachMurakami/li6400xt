@@ -1,6 +1,6 @@
 Package: li6400xt
-Title: Prepare Gas Exchange Data for R workflow
-Version: 0.0.0.9000
+Title: Preprocess Gas Exchange Data for R workflow
+Version: 0.0.0.9001
 Authors@R: 
     person(given = "Keach",
            family = "Murakami",
