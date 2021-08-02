@@ -1,11 +1,11 @@
 #' read gas-exchange data from LI6400XT
 #'
 #'@param file path
+#'@param inherit_pam logical; if `TRUE` xxx
 #'
 #'@importFrom magrittr %>%
-#'@importFrom magrittr %$%
 #'@export
-read_licor <- function(file){
+read_licor <- function(file, inherit_pam = FALSE){
 
   raw_data <-
     suppressWarnings(readr::read_csv(file, col_names = FALSE, col_types = readr::cols()))
@@ -39,51 +39,75 @@ read_licor <- function(file){
                   .before = 1,
                   HHMMSS = NULL)
 
-  attributes(tidy_data)$remark <-
+
+  ### replace chlorophyll fluorescence data
+
+  pam_data <-
+    tidy_data %>%
+    dplyr::distinct(Fo, Fm, `Fo'`, `Fm'`, `Fv/Fm`, `Fv'/Fm'`, PhiPS2, qP, qN, NPQ, .keep_all = TRUE) %>%
+    dplyr::select(time, Fo, Fm, `Fo'`, `Fm'`, `Fv/Fm`, `Fv'/Fm'`, PhiPS2, qP, qN, NPQ, ETR)
+
+  # remove first row if not inherit
+  if(!inherit_pam){ pam_data <- dplyr::slice(pam_data, -1) }
+
+  # closest time matching
+  insert_index <- pam_data$time %>% map_int(~ abs(. - tidy_data$time) %>% which.min)
+
+  time_matched_pam_data <-
+    pam_data %>%
+    dplyr::mutate(pam_data, Obs = as.character(insert_index), time = NULL)
+
+  result <-
+    tidy_data %>%
+    dplyr::select(-c(Fo, Fm, `Fo'`, `Fm'`, `Fv/Fm`, `Fv'/Fm'`, PhiPS2, qP, qN, NPQ, ETR)) %>%
+    dplyr::left_join(time_matched_pam_data, by = "Obs")
+
+  attributes(result)$remark <-
     raw_data[change_rows[1], "X1", drop = TRUE] %>%
     stringr::str_sub(start = 10, end = -1)
 
-  attributes(tidy_data)$controls <-
+  attributes(result)$controls <-
     raw_data[change_rows[-1], ] %>%
     tidyr::extract(X1, into = c("time", "log"), regex = "(.+:[0-9]+) (.+)") %>%
     dplyr::mutate(time = lubridate::ymd_hms(paste0(date, " ", time)),
                   file = paste0(basename(file)))
 
 
-  return(tidy_data)
+  return(result)
 }
 
 #' extract control procedure from change logs
 #'
 #'@param data output of `read_licor`
-#'@param track_variable variable tracked
-#'@param name_variable name of variable in the output tibble
+#'@param track tracked operation
+#'@param variable name of new variable
 #'
 #'@importFrom magrittr %>%
-#'@importFrom magrittr %$%
 #'@importFrom rlang !!
 #'@importFrom rlang :=
 #'@export
 track_changes <-
-  function(data, track_variable = "ParIn", name_variable = "PPFD"){
+  function(data, track = "LCF", variable = "PPFD"){
 
     changes <-
       attributes(data)$controls %>%
-      dplyr::filter(stringr::str_detect(log, track_variable)) %>%
-      dplyr::mutate(log = stringr::str_extract(log, ":.*-> [0-9.]*")) %>%
+      dplyr::filter(stringr::str_detect(log, track)) %>%
+      dplyr::mutate(log = stringr::str_replace(log, "Off", ": -> Off"),
+                    log = stringr::str_extract(log, ":.*-> [0-9.]*")) %>%
       tidyr::separate(log, into = c("variable", "value"), sep = "->") %>%
       dplyr::mutate(variable = NULL, value = as.numeric(value))
+
 
     output <-
       data %>%
       dplyr::mutate(value = NA_real_)
-    for(i in 1:(NROW(changes)-1)){
+    for(i in 1:(NROW(changes))){
       output <-
         output %>%
         dplyr::mutate(value = dplyr::if_else(time > changes$time[i], changes$value[i], value))
     }
 
     output %>%
-      dplyr::rename(!!(name_variable) := value) %>%
+      dplyr::rename(!!(variable) := value) %>%
       return()
   }
